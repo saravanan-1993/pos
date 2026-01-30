@@ -1,0 +1,476 @@
+// Unified Prisma Schema for Monolith E-Commerce Platform
+// Combined from all microservices
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGO_URL")
+}
+
+// ============================================
+// ADMIN AUTHENTICATION
+// ============================================
+
+model Admin {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  email         String    @unique
+  password      String
+  name          String
+  isActive      Boolean   @default(true)
+  isVerified    Boolean   @default(true)
+  lastLogin     DateTime?
+  resetToken    String?
+  resetTokenExpiry DateTime?
+  
+  // Company Information
+  companyName   String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  country       String?
+  phoneNumber   String?
+  gstNumber     String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("admins")
+}
+
+// ============================================
+// WEB SETTINGS
+// ============================================
+
+model WebSettings {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  logoUrl     String?
+  faviconUrl  String?
+  logoKey     String?
+  faviconKey  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("web_settings")
+}
+
+// Customer Model (for e-commerce)
+model Customer {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  // Contact Information
+  phoneNumber   String?
+  // Purchase Analytics
+  totalOrders   Int       @default(0)
+  totalSpent    Float     @default(0)
+  lastOrderDate DateTime?
+
+  orders        CustomerOrder[]
+
+  @@map("customers")
+}
+
+
+
+// ============================================
+// INVENTORY MANAGEMENT
+// ============================================
+
+model Warehouse {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String   @unique
+  address    String
+  city       String
+  state      String
+  postalCode String
+  country    String
+  manager    String
+  phone      String
+  status     String   @default("active")
+  items      Item[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("warehouses")
+}
+
+model Item {
+  id                  String     @id @default(auto()) @map("_id") @db.ObjectId
+  itemName            String
+  category            String
+  itemCode            String?
+  barcode             String?
+  brand               String?
+  uom                 String
+  purchasePrice       Float
+  sellingPrice        Float?
+  mrp                 Float?
+  gstRateId           String?    @db.ObjectId // Reference to GST Rate
+  gstPercentage       Float
+  hsnCode             String?
+  discountType        String?   // percentage, fixed, none
+  discountValue       Float?
+  warehouseId         String     @db.ObjectId
+  warehouse           Warehouse  @relation(fields: [warehouseId], references: [id])
+  openingStock        Int
+  quantity            Int
+  lowStockAlertLevel  Int
+  status              String     @default("in_stock") // in_stock, low_stock, out_of_stock
+  display             String     @default("inactive") // active, inactive - for POS display toggle
+  expiryDate          DateTime?
+  mfgDate             DateTime?
+  batchNo             String?
+  safetyInformation   String?
+  description         String?
+  itemImage           String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@map("items")
+}
+
+model InventoryCategory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("inventory_categories")
+}
+
+model StockAdjustment {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  itemId            String   @db.ObjectId
+  itemName          String
+  category          String   // Item category
+  warehouseId       String   @db.ObjectId
+  warehouseName     String   // Denormalized for reporting
+  
+  // Adjustment Method: "adjustment", "purchase_order", "sales_order"
+  adjustmentMethod  String   @default("adjustment")
+  
+  // Adjustment Type: "increase" or "decrease"
+  adjustmentType    String
+  
+  quantity          Int
+  previousQuantity  Int
+  newQuantity       Int
+  
+  // For manual adjustments
+  reason            String?  // "damage", "loss", "return", "found", "correction", "expired", "other"
+  reasonDetails     String?  // Additional details about the reason
+  adjustedBy        String   // User who made the adjustment
+  notes             String?
+  
+  // For purchase_order method
+  purchaseOrderId   String?  // Reference to PO
+  poNumber          String?  // PO-2024-001
+  billId            String?  // Reference to Bill/GRN
+  grnNumber         String?  // GRN-2024-001
+  supplierId        String?  // Supplier reference
+  supplierName      String?  // Supplier name
+  batchNumber       String?  // Batch tracking
+  expiryDate        DateTime? // Expiry tracking
+  manufacturingDate DateTime? // Manufacturing date
+  
+  // For sales_order method
+  salesOrderId      String?  // Reference to Sales Order
+  soNumber          String?  // SO-2024-001
+  customerId        String?  // Customer reference
+  customerName      String?  // Customer name
+  
+  createdAt         DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([itemId])
+  @@index([warehouseId])
+  @@index([adjustmentMethod])
+  @@index([grnNumber])
+  @@index([soNumber])
+  @@map("stock_adjustments")
+}
+
+
+
+
+
+
+// ============================================
+// POS (POINT OF SALE)
+// ============================================
+
+// POS Product Model - Customized products for POS display
+// Data is edited from inventory items and stored separately for POS
+model POSProduct {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Reference to original inventory item
+  itemId              String    @db.ObjectId // Reference to Item model
+  itemName            String
+  category            String
+  itemCode            String?
+  barcode             String?
+  brand               String?
+  uom                 String
+  
+  // Pricing (can be edited for POS)
+  purchasePrice       Float
+  sellingPrice        Float?
+  mrp                 Float?
+  
+  // GST Information
+  gstRateId           String?   @db.ObjectId
+  gstPercentage       Float
+  hsnCode             String?
+  
+  // Discount (can be edited for POS)
+  discountType        String?   // percentage, flat, none
+  discountValue       Float?
+  
+  // Stock Information (synced from inventory)
+  warehouse           String
+  quantity            Int
+  openingStock        Int
+  lowStockAlertLevel  Int
+  status              String    @default("in_stock") // in_stock, low_stock, out_of_stock
+  
+  // POS Display Control
+  display             String    @default("inactive") // active, inactive - Toggle for POS visibility
+  
+  // Product Details (can be edited for POS)
+  expiryDate          DateTime?
+  mfgDate             DateTime?
+  batchNo             String?
+  safetyInformation   String?
+  description         String?
+  itemImage           String?   // S3 key or URL
+  
+  // Sync metadata
+  syncedAt            DateTime  @default(now())
+  lastSyncedFromItem  DateTime  @default(now())
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([itemId])
+  @@index([display])
+  @@index([category])
+  @@index([barcode])
+  @@map("pos_products")
+}
+
+// ============================================
+// ORDERS
+// ============================================
+
+model POSOrder {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber     String        @unique
+  invoiceNumber   String?       @unique
+  orderType       String        @default("pos") // pos, online, offline
+  
+  // Customer Information
+  customerId      String?
+  customerName    String?
+  customerEmail   String?
+  customerPhone   String?
+  
+  // Order Items
+  items           POSOrderItem[]
+  
+  // Pricing
+  subtotal        Float
+  tax             Float
+  taxRate         Float
+  discount        Float         @default(0)
+  roundingOff     Float         @default(0)
+  total           Float
+  
+  // Payment
+  paymentMethod   String        // cash, card, upi
+  paymentStatus   String        @default("completed") // completed, pending, failed
+  amountReceived  Float
+  changeGiven     Float         @default(0)
+  
+  // Status
+  orderStatus     String        @default("completed") // completed, cancelled, refunded
+  
+  // Finance Fields
+  saleDate        DateTime?     @default(now()) // Date of sale for reporting
+  accountingPeriod String?      // YYYY-MM format (e.g., "2024-01")
+  financialYear   String?       // Financial year (e.g., "2024-25")
+  
+  // Metadata
+  createdBy       String?       // User/Cashier ID
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  completedAt     DateTime?
+  
+  @@map("pos_orders")
+}
+
+model POSOrderItem {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String    @db.ObjectId
+  order           POSOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Product Information
+  productId       String
+  productName     String
+  productSku      String?
+  
+  // Pricing
+  unitPrice       Float
+  quantity        Int
+  discount        Float     @default(0) // percentage
+  subtotal        Float
+  total           Float
+  
+  // GST Information
+  gstPercentage   Float     @default(0)
+  gstAmount       Float     @default(0)
+  priceBeforeGst  Float     @default(0) // Price excluding GST
+  
+  createdAt       DateTime  @default(now())
+  
+  @@map("pos_order_items")
+}
+
+
+model CustomerOrder {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  customerId      String    @db.ObjectId
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Order Details
+  orderId         String    // Reference to order-service order ID
+  orderNumber     String
+  invoiceNumber   String?
+  orderType       String    @default("pos")
+  
+  // Financial
+  subtotal        Float
+  tax             Float     @default(0)
+  discount        Float     @default(0)
+  total           Float
+  
+  // Payment
+  paymentMethod   String
+  paymentStatus   String    @default("completed")
+  
+  // Items Summary
+  itemCount       Int
+  totalQuantity   Int
+  
+  // Timestamps
+  orderDate       DateTime  @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@map("customer_orders")
+  @@index([customerId])
+  @@index([orderNumber])
+}
+
+// ============================================
+// FINANCE
+// ============================================
+
+model Transaction {
+  id                    String    @id @default(auto()) @map("_id") @db.ObjectId
+  transactionId         String    @unique
+  transactionType       String    // sale, purchase, refund, adjustment
+  
+  // Reference to source
+  referenceType         String    // online_order, pos_order, purchase_order, manual
+  referenceId           String?   // ID of the referenced entity
+  referenceNumber       String    // Order number, invoice number, etc.
+  
+  // Financial details
+  amount                Float
+  currency              String    @default("INR")
+  taxAmount             Float     @default(0)
+  discountAmount        Float     @default(0)
+  shippingAmount        Float     @default(0)
+  netAmount             Float
+  
+  // Payment details
+  paymentMethod         String?   // cash, card, upi, razorpay, stripe, cod
+  paymentStatus         String    @default("pending") // pending, completed, failed, refunded
+  paymentId             String?   // Gateway payment ID
+  paymentGateway        String?   // razorpay, stripe, etc.
+  gatewayTransactionId  String?   // Gateway's transaction ID
+  
+  // Customer details
+  customerId            String?
+  customerName          String?
+  customerEmail         String?
+  customerPhone         String?
+  userId                String?
+  
+  // Accounting details
+  accountingPeriod      String?   // YYYY-MM format
+  financialYear         String?   // 2024-25
+  transactionDate       DateTime  @default(now())
+  
+  // Revenue recognition
+  revenueAmount         Float     @default(0) // Amount recognized as revenue
+  revenueRecognitionDate DateTime?
+  revenueRecognitionReason String? // payment_completed, delivery_confirmed, etc.
+  
+  // Metadata
+  description           String?
+  notes                 String?
+  source                String?   // online-service, offline-service, etc.
+  createdBy             String?
+  
+  // Gateway Response
+  gatewayResponse Json?    // Store full gateway response
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  completedAt           DateTime?
+
+  @@index([transactionType])
+  @@index([referenceType])
+  @@index([referenceNumber])
+  @@index([paymentStatus])
+  @@index([accountingPeriod])
+  @@index([financialYear])
+  @@index([transactionDate])
+  @@index([customerId])
+  @@index([userId])
+  @@map("transactions")
+}
+
+model InvoiceSettings {
+  id                     String   @id @default(auto()) @map("_id") @db.ObjectId
+  invoicePrefix          String   @default("INV")
+  invoiceSequenceLength  Int      @default(4)
+  financialYearStart     DateTime // Full date with year
+  financialYearEnd       DateTime // Full date with year
+  autoFinancialYear      Boolean  @default(true)
+  manualFinancialYear    String?
+  currentSequenceNo      Int      @default(1)
+  invoiceFormat          String   @default("{PREFIX}-{FY}-{SEQ}")
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@map("invoice_settings")
+}
+
+model GSTRate {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  gstPercentage   Float
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("gst_rates")
+}
