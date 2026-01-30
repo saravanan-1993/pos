@@ -222,18 +222,6 @@ export const AdminLogin = () => {
                 )}
               </button>
             </form>
-
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-center text-slate-600 dark:text-slate-400">
-                Having trouble?{" "}
-                <Link
-                  href="/support"
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors duration-200"
-                >
-                  Contact support
-                </Link>
-              </p>
-            </div>
           </div>
         </div>
 
