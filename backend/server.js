@@ -17,6 +17,8 @@ const allowedOrigins = [
   process.env.BACKEND_URL,
   "http://localhost:3000",
   "http://localhost:5000",
+  "https://pos-fawn-beta.vercel.app",
+  "https://pos-zk34.vercel.app"
   
 ].filter(Boolean).map(origin => origin.replace(/\/$/, "")); // Normalize by removing trailing slashes
 
