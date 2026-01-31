@@ -221,6 +221,73 @@ export const AdminLogin = () => {
                   "Sign In"
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setFormData({
+                    email: "manoj@mntfuture.com",
+                    password: "Admin123",
+                  });
+                  setErrors({ email: "", password: "" });
+                  
+                  setTimeout(() => {
+                    setIsLoading(true);
+                    const adminFormData = {
+                      email: "manoj@mntfuture.com",
+                      password: "Admin123",
+                    };
+
+                    (async () => {
+                      try {
+                        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+                        const response = await axios.post(
+                          `${apiUrl}/api/admin/auth/login`,
+                          adminFormData,
+                          {
+                            withCredentials: true,
+                          }
+                        );
+
+                        if (response.data.success) {
+                          const token = response.data.data.token;
+                          const user = response.data.data.user;
+
+                          localStorage.setItem("token", token);
+                          localStorage.setItem("user", JSON.stringify(user));
+
+                          if (typeof window !== "undefined") {
+                            window.dispatchEvent(new CustomEvent("auth-refresh"));
+                          }
+
+                          router.replace("/dashboard");
+                          router.refresh();
+                        } else {
+                          setErrors((prev) => ({
+                            ...prev,
+                            password: response.data.error || "Login failed",
+                          }));
+                          setIsLoading(false);
+                        }
+                      } catch (error: unknown) {
+                        const errorMessage =
+                          (error as { response?: { data?: { error?: string } } })
+                            ?.response?.data?.error || "Network error. Please try again.";
+
+                        setErrors((prev) => ({
+                          ...prev,
+                          password: errorMessage,
+                        }));
+                        setIsLoading(false);
+                      }
+                    })();
+                  }, 300);
+                }}
+                disabled={isLoading}
+                className="w-full h-10 bg-gradient-to-t from-emerald-600 via-emerald-500 to-emerald-400 hover:from-emerald-700 hover:via-emerald-600 hover:to-emerald-500 dark:from-emerald-600 dark:via-emerald-500 dark:to-emerald-400 dark:hover:from-emerald-700 dark:hover:via-emerald-600 dark:hover:to-emerald-500 text-white font-semibold text-sm rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-emerald-500/25 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+              >
+                {isLoading ? "Auto-Login..." : "Auto Login (Demo)"}
+              </button>
             </form>
           </div>
         </div>
