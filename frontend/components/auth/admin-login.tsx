@@ -227,7 +227,7 @@ export const AdminLogin = () => {
                 onClick={async () => {
                   setFormData({
                     email: "manoj@mntfuture.com",
-                    password: "Admin123",
+                    password: "Admin@123",
                   });
                   setErrors({ email: "", password: "" });
                   
@@ -235,7 +235,7 @@ export const AdminLogin = () => {
                     setIsLoading(true);
                     const adminFormData = {
                       email: "manoj@mntfuture.com",
-                      password: "Admin123",
+                      password: "Admin@123",
                     };
 
                     (async () => {
