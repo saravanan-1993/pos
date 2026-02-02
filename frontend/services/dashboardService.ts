@@ -1,6 +1,4 @@
-import axios from "axios";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import axiosInstance from "@/lib/axios";
 
 export interface DashboardMetrics {
   revenue: {
@@ -51,11 +49,8 @@ export const getDashboardMetrics = async (
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
 
-    const response = await axios.get(
-      `${API_URL}/api/dashboard/metrics?${params.toString()}`,
-      {
-        withCredentials: true,
-      }
+    const response = await axiosInstance.get(
+      `/api/dashboard/metrics?${params.toString()}`
     );
     return response.data.data;
   } catch (error) {
@@ -79,11 +74,8 @@ export const getSalesChartData = async (
     const response = await axios.get(
       `${API_URL}/api/dashboard/sales-chart?${params.toString()}`,
       {
-        withCredentials: true,
-      }
-    );
-    return response.data.data;
-  } catch (error) {
+        withCredentials: true,Instance.get(
+      `/api/dashboard/sales-chart?${params.toString()}`ch (error) {
     console.error("Error fetching sales chart data:", error);
     throw error;
   }
@@ -109,9 +101,6 @@ export const getRecentOrders = async (
         withCredentials: true,
       }
     );
-    return response.data.data;
-  } catch (error) {
-    console.error("Error fetching recent orders:", error);
-    throw error;
-  }
+    return response.data.data;Instance.get(
+      `/api/dashboard/recent-orders?${params.toString()}`
 };

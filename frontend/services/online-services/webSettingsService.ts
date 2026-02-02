@@ -1,4 +1,4 @@
-import axios from "axios";
+import axiosInstance from "@/lib/axios";
 
 export interface WebSettings {
   logoUrl: string | null;
@@ -28,8 +28,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
  */
 export const getWebSettings = async (): Promise<WebSettingsResponse> => {
   try {
-    const response = await axios.get<WebSettingsResponse>(
-      `${API_URL}/api/web/web-settings`
+    const response = await axiosInstance.get<WebSettingsResponse>(
+      `/api/web/web-settings`
     );
     return response.data;
   } catch (error) {
@@ -55,14 +55,13 @@ export const uploadLogo = async (file: File): Promise<UploadLogoResponse> => {
     const formData = new FormData();
     formData.append("logo", file);
 
-    const response = await axios.post<UploadLogoResponse>(
-      `${API_URL}/api/web/logo`,
+    const response = await axiosInstance.post<UploadLogoResponse>(
+      `/api/web/logo`,
       formData,
       {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-        withCredentials: true,
       }
     );
     return response.data;
@@ -80,11 +79,8 @@ export const uploadLogo = async (file: File): Promise<UploadLogoResponse> => {
 export const deleteLogo = async (): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await axios.delete<{ success: boolean; message: string }>(
-      `${API_URL}/api/web/logo`,
-      {
-        withCredentials: true,
-      }
-    );
+      `${API_URL}/api/web/logo`,Instance.delete<{ success: boolean; message: string }>(
+      `/api/web/logo`
     return response.data;
   } catch (error: any) {
     console.error("Error deleting logo:", error);
