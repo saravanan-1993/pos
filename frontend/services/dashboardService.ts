@@ -71,11 +71,11 @@ export const getSalesChartData = async (
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
 
-    const response = await axios.get(
-      `${API_URL}/api/dashboard/sales-chart?${params.toString()}`,
-      {
-        withCredentials: true,Instance.get(
-      `/api/dashboard/sales-chart?${params.toString()}`ch (error) {
+    const response = await axiosInstance.get(
+      `/api/dashboard/sales-chart?${params.toString()}`
+    );
+    return response.data.data;
+  } catch (error) {
     console.error("Error fetching sales chart data:", error);
     throw error;
   }
@@ -95,12 +95,12 @@ export const getRecentOrders = async (
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
 
-    const response = await axios.get(
-      `${API_URL}/api/dashboard/recent-orders?${params.toString()}`,
-      {
-        withCredentials: true,
-      }
-    );
-    return response.data.data;Instance.get(
+    const response = await axiosInstance.get(
       `/api/dashboard/recent-orders?${params.toString()}`
+    );
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching recent orders:", error);
+    throw error;
+  }
 };

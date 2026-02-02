@@ -78,9 +78,9 @@ export const uploadLogo = async (file: File): Promise<UploadLogoResponse> => {
  */
 export const deleteLogo = async (): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await axios.delete<{ success: boolean; message: string }>(
-      `${API_URL}/api/web/logo`,Instance.delete<{ success: boolean; message: string }>(
+    const response = await axiosInstance.delete<{ success: boolean; message: string }>(
       `/api/web/logo`
+    );
     return response.data;
   } catch (error: any) {
     console.error("Error deleting logo:", error);
